@@ -1,0 +1,28 @@
+{
+  "name": "doudizhu",
+  "version": "1.0.0",
+  "description": "斗地主、服务器、单机、AI",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -r ts-node/register _test_/*.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [
+    "斗地主",
+    "服务器端"
+  ],
+  "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/core-decorators": "^0.20.0",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.12.0",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0"
+  },
+  "dependencies": {
+    "core-decorators": "^0.20.0",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.1.3"
+  }
+}
