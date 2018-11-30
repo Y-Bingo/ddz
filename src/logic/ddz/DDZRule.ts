@@ -49,6 +49,9 @@ export default class DDZRuleMaster {
     sortPokerList( cbPokerDatas: number[], cbSortType: SORT_TYPE = SORT_TYPE.ST_LOGIC ): void {
         switch ( cbSortType ) {
             case SORT_TYPE.ST_COUNT: {
+                let analyseResult = {};
+                this._analyseBase( cbPokerDatas, analyseResult );
+
                 break;
             }
             case SORT_TYPE.ST_LOGIC: {
@@ -80,7 +83,9 @@ export default class DDZRuleMaster {
         while ( i < cbRemoveCount ) {
             while ( j < cbPokerCount ) {
                 if ( cbRemovePoker[ i ] === cbPokerDatas[ j ] ) {
-                    utils.Memory.swap( cbPokerDatas, j, cbPokerCount - 1 );
+                    // 交换数值
+                    [ cbPokerDatas[ cbPokerCount - 1 ], cbPokerDatas[ j ] ] = [ cbPokerDatas[ j ], cbPokerDatas[ cbPokerCount - 1 ] ];
+                    // utils.Memory.swap( cbPokerDatas, j, cbPokerCount - 1 );
                     cbPokerCount--;
                     continue;
                 }
@@ -136,8 +141,8 @@ export default class DDZRuleMaster {
         }
         // 复杂牌型分析
         let anlyzerResult: IAnalyseResult = {};
-        this.analyseBase( cbPokerDatas, anlyzerResult );
-        switch ( PokerTypeAssert.mainType( anlyzerResult ) ) {
+        this._analyseBase( cbPokerDatas, anlyzerResult );
+        switch ( PokerTypeAssert.getMainType( anlyzerResult ) ) {
             case EPokerMainType.CMT_ONE:
                 // 顺子
                 if ( PokerTypeAssert.isSingleLine( cbPokerDatas, anlyzerResult ) )
@@ -173,7 +178,7 @@ export default class DDZRuleMaster {
                 break;
             case EPokerMainType.CMT_FOUR:
                 // 四不带
-                if ( PokerTypeAssert.isBoom( cbPokerDatas ) )
+                if ( PokerTypeAssert.isBoom( cbPokerDatas, anlyzerResult ) )
                     return EPokerType.CT_BOMB;
                 // 四带一
                 if ( PokerTypeAssert.isFourTakeOne( cbPokerDatas, anlyzerResult ) )
@@ -188,13 +193,24 @@ export default class DDZRuleMaster {
         }
         return EPokerType.CT_ERROR;
     }
+    /**
+     * 比较出牌
+     * @param firstOuts 先手
+     * @param lastOuts  后手
+     */
+    comparePoker( firstOuts: number[], lastOuts: number[] ): boolean {
+        let firstOutType = this.getPokerType( firstOuts );
+        let lastOutType = this.getPokerType( lastOuts );
+
+        return;
+    }
 
     /**
      * 卡牌分析，把逻辑值相同的牌都归并到同一个数组( ps：使用前先对数据进行排序 )
      * @param cbPokerDatas
      * @param analyseResult
      */
-    analyseBase( cbPokerDatas: number[], analyseResult: IAnalyseResult ): void {
+    private _analyseBase( cbPokerDatas: number[], analyseResult: IAnalyseResult ): void {
         this.clearAnalyse( analyseResult );
         cbPokerDatas.sort( sortByLogicFirst );
         // 扑克分析
@@ -209,7 +225,7 @@ export default class DDZRuleMaster {
                 // 张数超过了 正常牌值
                 if ( sameCount <= MAX_POKER_COUNT ) {
                     analyseResult.cbBlockCount[ sameCount - 1 ]++;
-                    analyseResult.cbPokerGroups[ sameCount - 1 ].push( poker.getLogicValue( cbPokerDatas[ i ] ) );
+                    analyseResult.cbPokerGroups[ sameCount - 1 ].push( poker.getLogicValue( cbPokerDatas[ 0 ] ) );
                 } else {
                     console.error( "牌值大于最大张数" );
                 }

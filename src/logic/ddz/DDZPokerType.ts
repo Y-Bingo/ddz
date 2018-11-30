@@ -76,7 +76,7 @@ export interface IAnalyseResult {
 
 export class PokerTypeAssert {
     // 主要是哪种类型的牌型: 1 牌、2 牌、3 牌、4 牌
-    static mainType( analyseResult: IAnalyseResult ): number {
+    static getMainType( analyseResult: IAnalyseResult ): number {
         let oneCount = analyseResult.cbBlockCount[ 0 ];
         let twoCount = analyseResult.cbBlockCount[ 1 ];
         let threeCount = analyseResult.cbBlockCount[ 2 ];
@@ -102,7 +102,7 @@ export class PokerTypeAssert {
         let len = cbPokerTemp.length;
         let i = 0;
         while ( i < len - 1 ) {
-            if ( cbPokerTemp[ i ] - 1 !== cbPokerTemp[ i + 1 ] )
+            if ( poker.getLogicValue( cbPokerTemp[ i ] ) - 1 !== poker.getLogicValue( cbPokerTemp[ i + 1 ] ) )
                 return false;
             i++;
         }
@@ -122,7 +122,7 @@ export class PokerTypeAssert {
     }
     // 是否为对牌
     static isDouble( cbPokerDatas: number[] ): boolean {
-        return poker.getValue( cbPokerDatas[ 0 ] ) === poker.getValue( cbPokerDatas[ 1 ] );
+        return poker.getLogicValue( cbPokerDatas[ 0 ] ) === poker.getLogicValue( cbPokerDatas[ 1 ] );
     }
     // 是否为连对 需要大于三对
     static isDoubleLine( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
@@ -202,11 +202,13 @@ export class PokerTypeAssert {
     }
     // 是否为炸弹
     static isBoom( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
-        let p1 = poker.getValue( cbPokerDatas[ 0 ] ),
-            p2 = poker.getValue( cbPokerDatas[ 1 ] ),
-            p3 = poker.getValue( cbPokerDatas[ 2 ] ),
-            p4 = poker.getValue( cbPokerDatas[ 3 ] );
-        return p1 === p2 && p2 === p3 && p3 === p4 && cbPokerDatas.length === 4;
+        // let p1 = poker.getLogicValue( cbPokerDatas[ 0 ] ),
+        //     p2 = poker.getLogicValue( cbPokerDatas[ 1 ] ),
+        //     p3 = poker.getLogicValue( cbPokerDatas[ 2 ] ),
+        //     p4 = poker.getLogicValue( cbPokerDatas[ 3 ] );
+        // return p1 === p2 && p2 === p3 && p3 === p4 && cbPokerDatas.length === 4;
+        let fourCount = analyseResult.cbBlockCount[ 3 ];
+        return fourCount === 1 && fourCount * 4 === cbPokerDatas.length;
     }
     // 四带两单
     static isFourTakeOne( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
