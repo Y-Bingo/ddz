@@ -1,7 +1,7 @@
 import * as poker from "../PokerData";
 import * as utils from "../../utils/Memory";
 import { sortByPatternFirst, sortByLogicFirst } from '../Sort';
-import { IAnalyseResult, EPokerMainType, EPokerType, PokerTypeAssert } from './DDZPokerType';
+import { ICountAnalysis, EPokerMainType, EPokerType, PokerTypeAssert, IWeightAnalysis, IAnalysis } from './DDZPokerType';
 import {
     m_cbCardData,
     FULL_COUNT,
@@ -17,7 +17,7 @@ export default class DDZRuleMaster {
      * // 牌值有效值判断
      * @param cbPokerData
      */
-    isValidCard( cbPokerData: number ): boolean {
+    isValidCard ( cbPokerData: number ): boolean {
         if ( cbPokerData === 0 ) return false;
         // 花型
         let pattern = poker.getPattern( cbPokerData );
@@ -29,7 +29,7 @@ export default class DDZRuleMaster {
         return true;
     }
     // 洗牌/混乱扑克
-    shuffle( cbPokerDatas: number[] ): void {
+    shuffle ( cbPokerDatas: number[] ): void {
         utils.Memory.copy( cbPokerDatas, m_cbCardData );
         let totalCount: number = FULL_COUNT,
             randCount: number = totalCount,
@@ -46,7 +46,7 @@ export default class DDZRuleMaster {
      * @param cbSortType 排序类型
      * @todo: 按数量排序
      */
-    sortPokerList( cbPokerDatas: number[], cbSortType: SORT_TYPE = SORT_TYPE.ST_LOGIC ): void {
+    sortPokerList ( cbPokerDatas: number[], cbSortType: SORT_TYPE = SORT_TYPE.ST_LOGIC ): void {
         switch ( cbSortType ) {
             case SORT_TYPE.ST_COUNT: {
                 let analyseResult = {};
@@ -72,7 +72,7 @@ export default class DDZRuleMaster {
      * @param cbPokerDatas
      * @todo: 待优化，删除数组做到不改变元素的位置
      */
-    removePokerDatas( cbRemovePoker: number[], cbPokerDatas: number[] ): void {
+    removePokerDatas ( cbRemovePoker: number[], cbPokerDatas: number[] ): void {
         let cbRemoveCount = cbRemovePoker.length;
         let cbPokerCount = cbPokerDatas.length;
         if ( cbRemoveCount > cbPokerCount )
@@ -101,21 +101,21 @@ export default class DDZRuleMaster {
         }
     }
     // 查找扑克
-    isCardExists( cbPokerDatas: number[], cbSearchPoker: number ): boolean {
+    isCardExists ( cbPokerDatas: number[], cbSearchPoker: number ): boolean {
         return cbPokerDatas.indexOf( cbSearchPoker ) >= 0;
     }
     /**
      * 获取扑克类型 不同的游戏需要不同的类型判断
      * @param cbPokerDatas
      */
-    getPokerType( cbPokerDatas: number[] ): EPokerType {
+    getPokerType ( cbPokerDatas: number[], anlyzerResult?: ICountAnalysis ): EPokerType {
         let cbPokerCount = cbPokerDatas.length;
         // 参数校验
         if ( cbPokerCount === 0 ) return EPokerType.CT_ERROR;
         // 检验牌值是否符合
         for ( let i = 0; i < cbPokerCount; i++ ) {
             if ( !this.isValidCard( cbPokerDatas[ i ] ) ) {
-                console.error( `牌值【${ cbPokerDatas[ i ] }】不是合法牌值` );
+                console.error( `牌值【${cbPokerDatas[ i ]}】不是合法牌值` );
                 return EPokerType.CT_ERROR;
             }
         }
@@ -140,7 +140,7 @@ export default class DDZRuleMaster {
             //         return EPokerType.CT_BOMB;
         }
         // 复杂牌型分析
-        let anlyzerResult: IAnalyseResult = {};
+        anlyzerResult = anlyzerResult || {};
         this._analyseBase( cbPokerDatas, anlyzerResult );
         switch ( PokerTypeAssert.getMainType( anlyzerResult ) ) {
             case EPokerMainType.CMT_ONE:
@@ -193,16 +193,80 @@ export default class DDZRuleMaster {
         }
         return EPokerType.CT_ERROR;
     }
+
+    /**
+     * 验证出牌 ( 回合首先出牌的 )
+     * @param firstOuts 
+     * @param lastOuts 
+     */
+    assertOuts ( firstOuts: number[], lastOuts?: number[] ): boolean {
+        if ( !lastOuts || !lastOuts.length ) {
+            let firstOutType = this.getPokerType( firstOuts );
+            return firstOutType !== EPokerType.CT_ERROR;
+        }
+        return this.comparePoker( firstOuts, lastOuts );
+    }
     /**
      * 比较出牌
      * @param firstOuts 先手
      * @param lastOuts  后手
+     * @returns boolean 如果后手大于先手，则能出牌，否则，牌型不对，牌型错误均不能出牌；
      */
-    comparePoker( firstOuts: number[], lastOuts: number[] ): boolean {
-        let firstOutType = this.getPokerType( firstOuts );
-        let lastOutType = this.getPokerType( lastOuts );
+    comparePoker ( firstOuts: number[], lastOuts: number[] ): boolean {
+        let firstAnalysis = {},
+            lastAnalysis = {};
+        let firstOutType = this.getPokerType( firstOuts, firstAnalysis );
+        let lastOutType = this.getPokerType( lastOuts, lastAnalysis );
+        // 牌型比较
+        if ( firstOutType === EPokerType.CT_JOKER_BOMB ) return false;
+        if ( lastOutType === EPokerType.CT_JOKER_BOMB ) return true;
+        if ( firstOutType !== lastOutType ) {
+            if ( lastOutType !== EPokerType.CT_BOMB ) return false;
+            else return true;
+        }
+        // 牌数量比较
+        if ( firstOuts.length !== lastOuts.length ) return false;
+        // 权重比较
+        let firstWeight = this.getPokersWeight( firstOuts, firstAnalysis );
+        let lastWeight = this.getPokersWeight( lastOuts, lastAnalysis );
+        switch ( lastOutType ) {
+            case EPokerType.CT_SINGLE:
+            case EPokerType.CT_SINGLE_LINE:
+            case EPokerType.CT_DOUBLE:
+            case EPokerType.CT_DOUBLE_LINE:
+            case EPokerType.CT_THREE:
+            case EPokerType.CT_THREE_TAKE_ONE:
+            case EPokerType.CT_THREE_TAKE_TWO:
+            case EPokerType.CT_THREE_LINE:
+            case EPokerType.CT_THREE_LINE_TAKE_ONE:
+            case EPokerType.CT_THREE_LINE_TAKE_TWO:
+            case EPokerType.CT_FOUR_TAKE_ONE:
+            case EPokerType.CT_FOUR_TAKE_TWO:
+            case EPokerType.CT_BOMB:
+                return firstWeight < lastWeight;
 
-        return;
+        }
+        return false;
+    }
+
+    private getPokersWeight ( cbPokerDatas: number[], analysis: IAnalysis ): number {
+        if( !analysis.cards || !analysis.cards.length  ) {
+            this.clearAnalyse( analysis );
+            this._analyseBase( cbPokerDatas, analysis );
+        }
+        switch ( PokerTypeAssert.getMainType( analysis ) ) {
+            case EPokerMainType.CMT_ONE:
+                return poker.getLogicValue( analysis.cbPokerGroups[ 0 ][ 0 ] );
+            case EPokerMainType.CMT_TWO:
+                return poker.getLogicValue( analysis.cbPokerGroups[ 1 ][ 0 ] );
+            case EPokerMainType.CMT_THREE:
+                return poker.getLogicValue( analysis.cbPokerGroups[ 2 ][ 0 ] );
+            case EPokerMainType.CMT_FOUR:
+                return poker.getLogicValue( analysis.cbPokerGroups[ 3 ][ 0 ] );
+            default:
+                console.warn( `非正常牌值主导类型，获取不了权重` )
+        }
+        return 0;
     }
 
     /**
@@ -210,7 +274,7 @@ export default class DDZRuleMaster {
      * @param cbPokerDatas
      * @param analyseResult
      */
-    private _analyseBase( cbPokerDatas: number[], analyseResult: IAnalyseResult ): void {
+    private _analyseBase ( cbPokerDatas: number[], analyseResult: ICountAnalysis ): void {
         this.clearAnalyse( analyseResult );
         cbPokerDatas.sort( sortByLogicFirst );
         // 扑克分析
@@ -225,7 +289,7 @@ export default class DDZRuleMaster {
                 // 张数超过了 正常牌值
                 if ( sameCount <= MAX_POKER_COUNT ) {
                     analyseResult.cbBlockCount[ sameCount - 1 ]++;
-                    analyseResult.cbPokerGroups[ sameCount - 1 ].push( poker.getLogicValue( cbPokerDatas[ 0 ] ) );
+                    analyseResult.cbPokerGroups[ sameCount - 1 ].push( cbPokerDatas[ i ]  );
                 } else {
                     console.error( "牌值大于最大张数" );
                 }
@@ -239,9 +303,12 @@ export default class DDZRuleMaster {
      * 重置/初始化分析结果
      * @param analyseResult
      */
-    private clearAnalyse( analyseResult: IAnalyseResult ): void {
+    private clearAnalyse ( analyseResult: IAnalysis ): void {
         analyseResult.cbBlockCount = [];
         analyseResult.cbPokerGroups = [];
+        analyseResult.cards = [];
+        analyseResult.pokerType = EPokerType.CT_ERROR;
+        analyseResult.weight = 0;
         for ( let i = 0; i < 4; i++ ) {
             analyseResult.cbBlockCount[ i ] = 0;
             analyseResult.cbPokerGroups[ i ] = [];

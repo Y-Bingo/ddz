@@ -54,16 +54,10 @@ export enum EPokerType {
     CT_JOKER_BOMB = 14
 }
 
-// 出牌数据
-export interface IPresentData {
-    // 牌列表
-    cards?: number[];
-    // 牌型
-    pokerType?: EPokerType;
-}
-
-// 分析结构
-export interface IAnalyseResult {
+/**
+ * 牌型分布数据结构
+ */
+export interface ICountAnalysis {
     /**
      * 对应cbCardData下数组的长度
      * */
@@ -74,9 +68,27 @@ export interface IAnalyseResult {
     cbPokerGroups?: number[][];  //扑克数据
 }
 
+// 牌型分析
+export interface ITypeAnalysis extends ICountAnalysis {
+    // 牌型
+    pokerType?: EPokerType;
+}
+
+// 权重分析
+export interface IWeightAnalysis extends ITypeAnalysis {
+    weight?: number; // [ 3 , 19 ];
+}
+
+// 
+export interface IAnalysis extends IWeightAnalysis {
+    // 牌列表
+    cards?: number[];
+}
+
+
 export class PokerTypeAssert {
     // 主要是哪种类型的牌型: 1 牌、2 牌、3 牌、4 牌
-    static getMainType( analyseResult: IAnalyseResult ): number {
+    static getMainType ( analyseResult: ICountAnalysis ): number {
         let oneCount = analyseResult.cbBlockCount[ 0 ];
         let twoCount = analyseResult.cbBlockCount[ 1 ];
         let threeCount = analyseResult.cbBlockCount[ 2 ];
@@ -93,7 +105,7 @@ export class PokerTypeAssert {
             return EPokerMainType.CMT_NONE;
     }
     // 是否连续的
-    static isCombo( cbPokerGroup: number[] ): boolean {
+    static isCombo ( cbPokerGroup: number[] ): boolean {
         let cbPokerTemp: number[] = [];
         Memory.copy( cbPokerTemp, cbPokerGroup );
         // 降序排序
@@ -109,7 +121,7 @@ export class PokerTypeAssert {
         return true;
     }
     // 是否为顺子
-    static isSingleLine( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
+    static isSingleLine ( cbPokerDatas: number[], analyseResult?: ICountAnalysis ): boolean {
         let oneCount = analyseResult.cbBlockCount[ 0 ];
         let cbPokerGroup = analyseResult.cbPokerGroups[ 0 ];
         if (
@@ -121,11 +133,11 @@ export class PokerTypeAssert {
         return false;
     }
     // 是否为对牌
-    static isDouble( cbPokerDatas: number[] ): boolean {
+    static isDouble ( cbPokerDatas: number[] ): boolean {
         return poker.getLogicValue( cbPokerDatas[ 0 ] ) === poker.getLogicValue( cbPokerDatas[ 1 ] );
     }
     // 是否为连对 需要大于三对
-    static isDoubleLine( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
+    static isDoubleLine ( cbPokerDatas: number[], analyseResult?: ICountAnalysis ): boolean {
         let twoCount = analyseResult.cbBlockCount[ 1 ];
         let cbPokerGroup = analyseResult.cbPokerGroups[ 1 ];
         if (
@@ -137,26 +149,26 @@ export class PokerTypeAssert {
         return false;
     }
     // 是否为三牌
-    static isTree( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
+    static isTree ( cbPokerDatas: number[], analyseResult?: ICountAnalysis ): boolean {
         let threeCount = analyseResult.cbBlockCount[ 2 ];
         return threeCount === 1 && threeCount * 3 === cbPokerDatas.length;
     }
     // 三带一
-    static isThreeTakeOne( cbPokerDatas: number[], analyseResult: IAnalyseResult ): boolean {
+    static isThreeTakeOne ( cbPokerDatas: number[], analyseResult: ICountAnalysis ): boolean {
         let threeCount = analyseResult.cbBlockCount[ 2 ];
         let oneCount = analyseResult.cbBlockCount[ 0 ];
         return ( threeCount === oneCount ) &&
             ( threeCount * 3 + oneCount ) === cbPokerDatas.length;
     }
     // 三带二
-    static isThreeTakeTwo( cbPokerDatas: number[], analyseResult: IAnalyseResult ): boolean {
+    static isThreeTakeTwo ( cbPokerDatas: number[], analyseResult: ICountAnalysis ): boolean {
         let threeCount = analyseResult.cbBlockCount[ 2 ];
         let twoCount = analyseResult.cbBlockCount[ 1 ];
         return ( threeCount === twoCount ) &&
             ( threeCount * 3 + twoCount * 2 ) === cbPokerDatas.length;
     }
     // 三不带飞机
-    static isThreeLine( cbPokerDatas: number[], analyseResult: IAnalyseResult ): boolean {
+    static isThreeLine ( cbPokerDatas: number[], analyseResult: ICountAnalysis ): boolean {
         let threeCount = analyseResult.cbBlockCount[ 2 ];
         let cbPokerGroup = analyseResult.cbPokerGroups[ 2 ];
         if (
@@ -168,7 +180,7 @@ export class PokerTypeAssert {
         return false;
     }
     // 三带一的飞机
-    static isThreeLineTakeOne( cbPokerDatas: number[], analyseResult: IAnalyseResult ): boolean {
+    static isThreeLineTakeOne ( cbPokerDatas: number[], analyseResult: ICountAnalysis ): boolean {
         let fourCount = analyseResult.cbBlockCount[ 3 ];
         let threeCount = analyseResult.cbBlockCount[ 2 ];
         let twoCount = analyseResult.cbBlockCount[ 1 ];
@@ -186,7 +198,7 @@ export class PokerTypeAssert {
 
     }
     // 三带二的飞机
-    static isThreeLineTakeTwo( cbPokerDatas: number[], analyseResult: IAnalyseResult ): boolean {
+    static isThreeLineTakeTwo ( cbPokerDatas: number[], analyseResult: ICountAnalysis ): boolean {
         let fourCount = analyseResult.cbBlockCount[ 3 ];
         let threeCount = analyseResult.cbBlockCount[ 2 ];
         let twoCount = analyseResult.cbBlockCount[ 1 ];
@@ -201,7 +213,7 @@ export class PokerTypeAssert {
         return false;
     }
     // 是否为炸弹
-    static isBoom( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
+    static isBoom ( cbPokerDatas: number[], analyseResult?: ICountAnalysis ): boolean {
         // let p1 = poker.getLogicValue( cbPokerDatas[ 0 ] ),
         //     p2 = poker.getLogicValue( cbPokerDatas[ 1 ] ),
         //     p3 = poker.getLogicValue( cbPokerDatas[ 2 ] ),
@@ -211,7 +223,7 @@ export class PokerTypeAssert {
         return fourCount === 1 && fourCount * 4 === cbPokerDatas.length;
     }
     // 四带两单
-    static isFourTakeOne( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
+    static isFourTakeOne ( cbPokerDatas: number[], analyseResult?: ICountAnalysis ): boolean {
         let fourCount = analyseResult.cbBlockCount[ 3 ];
         let twoCount = analyseResult.cbBlockCount[ 1 ];
         let oneCount = analyseResult.cbBlockCount[ 0 ];
@@ -226,7 +238,7 @@ export class PokerTypeAssert {
         return false;
     }
     // 四带两双
-    static isFourTakeTwo( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
+    static isFourTakeTwo ( cbPokerDatas: number[], analyseResult?: ICountAnalysis ): boolean {
         let fourCount = analyseResult.cbBlockCount[ 3 ];
         let twoCount = analyseResult.cbBlockCount[ 1 ];
         if ( fourCount === 1 )
@@ -238,7 +250,7 @@ export class PokerTypeAssert {
         return false;
     }
     // 是否为火箭
-    static isJokerBomb( cbPokerDatas: number[], analyseResult?: IAnalyseResult ): boolean {
+    static isJokerBomb ( cbPokerDatas: number[], analyseResult?: ICountAnalysis ): boolean {
         let poker1 = cbPokerDatas[ 0 ];
         let poker2 = cbPokerDatas[ 1 ];
         return ( poker1 === SJOKER || poker1 === LJOKER ) && ( poker2 === SJOKER || poker2 === LJOKER );
