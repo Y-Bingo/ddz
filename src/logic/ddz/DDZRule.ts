@@ -17,7 +17,7 @@ export default class DDZRuleMaster {
      * // 牌值有效值判断
      * @param cbPokerData
      */
-    isValidCard ( cbPokerData: number ): boolean {
+    isValidCard( cbPokerData: number ): boolean {
         if ( cbPokerData === 0 ) return false;
         // 花型
         let pattern = poker.getPattern( cbPokerData );
@@ -28,8 +28,11 @@ export default class DDZRuleMaster {
         if ( logicValue > poker.MAX_LOGIC_VALUE || logicValue < poker.MIN_LOGIC_VALUE ) return false;
         return true;
     }
-    // 洗牌/混乱扑克
-    shuffle ( cbPokerDatas: number[] ): void {
+    /**
+     * 洗牌/混乱扑克
+     * @param cbPokerDatas
+     */
+    shuffle( cbPokerDatas: number[] ): void {
         utils.Memory.copy( cbPokerDatas, m_cbCardData );
         let totalCount: number = FULL_COUNT,
             randCount: number = totalCount,
@@ -46,7 +49,7 @@ export default class DDZRuleMaster {
      * @param cbSortType 排序类型
      * @todo: 按数量排序
      */
-    sortPokerList ( cbPokerDatas: number[], cbSortType: SORT_TYPE = SORT_TYPE.ST_LOGIC ): void {
+    sortPokerList( cbPokerDatas: number[], cbSortType: SORT_TYPE = SORT_TYPE.ST_LOGIC ): void {
         switch ( cbSortType ) {
             case SORT_TYPE.ST_COUNT: {
                 let analyseResult = {};
@@ -72,7 +75,7 @@ export default class DDZRuleMaster {
      * @param cbPokerDatas
      * @todo: 待优化，删除数组做到不改变元素的位置
      */
-    removePokerDatas ( cbRemovePoker: number[], cbPokerDatas: number[] ): void {
+    removePokerDatas( cbRemovePoker: number[], cbPokerDatas: number[] ): void {
         let cbRemoveCount = cbRemovePoker.length;
         let cbPokerCount = cbPokerDatas.length;
         if ( cbRemoveCount > cbPokerCount )
@@ -101,21 +104,21 @@ export default class DDZRuleMaster {
         }
     }
     // 查找扑克
-    isCardExists ( cbPokerDatas: number[], cbSearchPoker: number ): boolean {
+    isCardExists( cbPokerDatas: number[], cbSearchPoker: number ): boolean {
         return cbPokerDatas.indexOf( cbSearchPoker ) >= 0;
     }
     /**
      * 获取扑克类型 不同的游戏需要不同的类型判断
      * @param cbPokerDatas
      */
-    getPokerType ( cbPokerDatas: number[], anlyzerResult?: ICountAnalysis ): EPokerType {
+    getPokerType( cbPokerDatas: number[], anlyzerResult?: ICountAnalysis ): EPokerType {
         let cbPokerCount = cbPokerDatas.length;
         // 参数校验
         if ( cbPokerCount === 0 ) return EPokerType.CT_ERROR;
         // 检验牌值是否符合
         for ( let i = 0; i < cbPokerCount; i++ ) {
             if ( !this.isValidCard( cbPokerDatas[ i ] ) ) {
-                console.error( `牌值【${cbPokerDatas[ i ]}】不是合法牌值` );
+                console.error( `牌值【${ cbPokerDatas[ i ] }】不是合法牌值` );
                 return EPokerType.CT_ERROR;
             }
         }
@@ -193,30 +196,29 @@ export default class DDZRuleMaster {
         }
         return EPokerType.CT_ERROR;
     }
-
     /**
      * 验证出牌 ( 回合首先出牌的 )
-     * @param firstOuts 
-     * @param lastOuts 
+     * @param lastOuts
+     * @param nextOuts
      */
-    assertOuts ( firstOuts: number[], lastOuts?: number[] ): boolean {
-        if ( !lastOuts || !lastOuts.length ) {
-            let firstOutType = this.getPokerType( firstOuts );
+    assertOuts( lastOuts: number[], nextOuts?: number[] ): boolean {
+        if ( !nextOuts || !nextOuts.length ) {
+            let firstOutType = this.getPokerType( lastOuts );
             return firstOutType !== EPokerType.CT_ERROR;
         }
-        return this.comparePoker( firstOuts, lastOuts );
+        return this.comparePoker( lastOuts, nextOuts );
     }
     /**
      * 比较出牌
-     * @param firstOuts 先手
-     * @param lastOuts  后手
+     * @param lastOuts 先手
+     * @param nextOuts  后手
      * @returns boolean 如果后手大于先手，则能出牌，否则，牌型不对，牌型错误均不能出牌；
      */
-    comparePoker ( firstOuts: number[], lastOuts: number[] ): boolean {
+    comparePoker( lastOuts: number[], nextOuts: number[] ): boolean {
         let firstAnalysis = {},
             lastAnalysis = {};
-        let firstOutType = this.getPokerType( firstOuts, firstAnalysis );
-        let lastOutType = this.getPokerType( lastOuts, lastAnalysis );
+        let firstOutType = this.getPokerType( lastOuts, firstAnalysis );
+        let lastOutType = this.getPokerType( nextOuts, lastAnalysis );
         // 牌型比较
         if ( firstOutType === EPokerType.CT_JOKER_BOMB ) return false;
         if ( lastOutType === EPokerType.CT_JOKER_BOMB ) return true;
@@ -225,10 +227,10 @@ export default class DDZRuleMaster {
             else return true;
         }
         // 牌数量比较
-        if ( firstOuts.length !== lastOuts.length ) return false;
+        if ( lastOuts.length !== nextOuts.length ) return false;
         // 权重比较
-        let firstWeight = this.getPokersWeight( firstOuts, firstAnalysis );
-        let lastWeight = this.getPokersWeight( lastOuts, lastAnalysis );
+        let firstWeight = this.getPokersWeight( lastOuts, firstAnalysis );
+        let lastWeight = this.getPokersWeight( nextOuts, lastAnalysis );
         switch ( lastOutType ) {
             case EPokerType.CT_SINGLE:
             case EPokerType.CT_SINGLE_LINE:
@@ -244,13 +246,152 @@ export default class DDZRuleMaster {
             case EPokerType.CT_FOUR_TAKE_TWO:
             case EPokerType.CT_BOMB:
                 return firstWeight < lastWeight;
-
         }
         return false;
     }
 
-    private getPokersWeight ( cbPokerDatas: number[], analysis: IAnalysis ): number {
-        if( !analysis.cards || !analysis.cards.length  ) {
+    /**
+     * 查询跟牌
+     * @param myhands
+     * @param lastOuts
+     */
+    searchFollowOuts( myhands: number[], lastOuts?: number[] ): number[][] {
+        myhands.sort( sortByLogicFirst );
+        if ( !lastOuts || !lastOuts.length ) {
+            return this._searchFristOuts( myhands );
+        }
+        return this._searchFollowOuts( lastOuts, myhands );
+    }
+    /** ---------------------------------------- 牌型搜索 -------------------------------- */
+    /**
+     * 查询回合首次出牌
+     * @param myhands
+     */
+    private _searchFristOuts( myhands: number[] ): number[][] {
+        return [];
+    }
+
+    private _searchFollowOuts( lastOuts: number[], myhands: number[] ): number[][] {
+        let lastAnalysis = {};
+        let lastOutType = this.getPokerType( lastOuts, lastAnalysis );
+        let lastWeight = this.getPokersWeight( lastOuts, lastAnalysis );
+        let result = [];
+        let maxCombo = 0;
+        switch ( lastOutType ) {
+            case EPokerType.CT_SINGLE:
+                result.push.apply( result, this._searchSingle( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_SINGLE_LINE:
+                maxCombo = lastAnalysis[ 0 ].length;
+                result.push.apply( result, this._searchSingleLine( myhands, lastWeight, maxCombo ) );
+                break;
+            case EPokerType.CT_DOUBLE:
+                result.push.apply( result, this._searchDobule( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_DOUBLE_LINE:
+                maxCombo = lastAnalysis[ 1 ].length;
+                result.push.apply( result, this._searchDoubleLine( myhands, lastWeight, maxCombo ) );
+                break;
+            case EPokerType.CT_THREE:
+                result.push.apply( result, this._searchThree( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_THREE_TAKE_ONE:
+                result.push.apply( result, this._searchThreeTakeOne( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_THREE_LINE_TAKE_TWO:
+                result.push.apply( result, this._searchThreeTakeTwo( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_THREE_LINE:
+                maxCombo = lastAnalysis[ 2 ].length;
+                result.push.apply( result, this._searchThreeLine( myhands, lastWeight, maxCombo ) );
+                break;
+            case EPokerType.CT_THREE_LINE_TAKE_ONE:
+                maxCombo = lastAnalysis[ 2 ].length;
+                result.push.apply( result, this._searchThreeLineTakeOne( myhands, lastWeight, maxCombo ) );
+                break;
+            case EPokerType.CT_THREE_LINE_TAKE_TWO:
+                maxCombo = lastAnalysis[ 2 ].length;
+                result.push.apply( result, this._searchThreeLineTakeTwo( myhands, lastWeight, maxCombo ) );
+                break;
+            case EPokerType.CT_BOMB:
+                result.push.apply( result, this._searchBoom( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_FOUR_TAKE_ONE:
+                result.push.apply( result, this._searchFourTakeOne( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_FOUR_TAKE_TWO:
+                result.push.apply( result, this._searchFourTakeTwo( myhands, lastWeight ) );
+                break;
+            case EPokerType.CT_ERROR:
+                console.error( "待跟牌型错误" );
+            case EPokerType.CT_JOKER_BOMB:
+            default:
+                return result;
+        }
+        // return result;
+    }
+    // 查找单牌
+    private _searchSingle( cbPokerDatas: number[], startWeight: number ): number[] {
+        let result = [];
+
+        return [];
+    }
+    // 查找顺子
+    private _searchSingleLine( cbPokerDatas: number[], startWeight: number, maxCombo: number ): number[] {
+        return [];
+    }
+    // 查找对牌
+    private _searchDobule( cbPokerDatas: number[], startWeight: number ): number[] {
+        return [];
+    }
+    // 查找连对
+    private _searchDoubleLine( cbPokerDatas: number[], startWeight: number, maxCombo ): number[] {
+
+    }
+    // 查找三不带
+    private _searchThree( cbPokerDatas: number[], startWeight: number ): number[] {
+
+    }
+    // 查找三不带 飞机
+    private _searchThreeLine( cbPokerDatas: number[], startWeight: number, maxCombo: number ): number[] {
+
+    }
+    // 查找三带一
+    private _searchThreeTakeOne( cbPokerDatas: number[], startWeight: number ): number[] {
+
+    }
+    // 查找三带一 飞机
+    private _searchThreeLineTakeOne( cbPokerDatas: number[], startWeight: number, maxCombo: number ): number[] {
+
+    }
+    // 查找 三带二
+    private _searchThreeTakeTwo( cbPokerDatas: number[], startWeight: number ): number[] {
+
+    }
+    // 查找 三带二 飞机
+    private _searchThreeLineTakeTwo( cbPokerDatas: number[], startWeight: number, maxCombo: number ): number[] {
+
+    }
+    // 查找 炸弹 包括王炸
+    private _searchBoom( cbPokerDatas: number[], startWeight: number ): number[] {
+
+    }
+    // 查找 四带两单
+    private _searchFourTakeOne( cbPokerDatas: number[], startWeight: number ): number[] {
+
+    }
+    // 查找 四带两对
+    private _searchFourTakeTwo( cbPokerDatas: number[], startWeight: number ): number[] {
+
+    }
+
+    /**
+     * 获取牌型的权重
+     * @param cbPokerDatas
+     * @param analysis
+     */
+    private getPokersWeight( cbPokerDatas: number[], analysis: IAnalysis ): number {
+        if ( !analysis.cards || !analysis.cards.length ) {
             this.clearAnalyse( analysis );
             this._analyseBase( cbPokerDatas, analysis );
         }
@@ -268,13 +409,12 @@ export default class DDZRuleMaster {
         }
         return 0;
     }
-
     /**
      * 卡牌分析，把逻辑值相同的牌都归并到同一个数组( ps：使用前先对数据进行排序 )
      * @param cbPokerDatas
      * @param analyseResult
      */
-    private _analyseBase ( cbPokerDatas: number[], analyseResult: ICountAnalysis ): void {
+    private _analyseBase( cbPokerDatas: number[], analyseResult: ICountAnalysis ): void {
         this.clearAnalyse( analyseResult );
         cbPokerDatas.sort( sortByLogicFirst );
         // 扑克分析
@@ -289,7 +429,7 @@ export default class DDZRuleMaster {
                 // 张数超过了 正常牌值
                 if ( sameCount <= MAX_POKER_COUNT ) {
                     analyseResult.cbBlockCount[ sameCount - 1 ]++;
-                    analyseResult.cbPokerGroups[ sameCount - 1 ].push( cbPokerDatas[ i ]  );
+                    analyseResult.cbPokerGroups[ sameCount - 1 ].push( cbPokerDatas[ i ] );
                 } else {
                     console.error( "牌值大于最大张数" );
                 }
@@ -299,11 +439,29 @@ export default class DDZRuleMaster {
             }
         }
     }
+
+    // 卡牌分布分析， 用作提示出牌（类似于卡牌的基础）
+    private _analyseDistribution( cbPokerDatas: number[], analyseResult: number[][] ): void {
+        cbPokerDatas.sort( sortByLogicFirst );
+        // 扑克分析
+        let i = 0, offset = 0, cbPokerCount = cbPokerDatas.length;
+        while ( i < cbPokerCount ) {
+            if ( cbPokerDatas[ i ] === cbPokerDatas[ offset + i ] ) {
+                offset++;
+            } else {
+                i += offset;
+                offset = 0;
+            }
+            analyseResult[ offset ].push( cbPokerDatas[ i + offset ] );
+        }
+    }
+
+
     /**
      * 重置/初始化分析结果
      * @param analyseResult
      */
-    private clearAnalyse ( analyseResult: IAnalysis ): void {
+    private clearAnalyse( analyseResult: IAnalysis ): void {
         analyseResult.cbBlockCount = [];
         analyseResult.cbPokerGroups = [];
         analyseResult.cards = [];
@@ -314,7 +472,5 @@ export default class DDZRuleMaster {
             analyseResult.cbPokerGroups[ i ] = [];
         }
     }
-
-
 }
 

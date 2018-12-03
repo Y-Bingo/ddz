@@ -79,10 +79,14 @@ export interface IWeightAnalysis extends ITypeAnalysis {
     weight?: number; // [ 3 , 19 ];
 }
 
-// 
+//
 export interface IAnalysis extends IWeightAnalysis {
     // 牌列表
     cards?: number[];
+}
+
+export interface IDistribute {
+
 }
 
 
