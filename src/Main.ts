@@ -8,10 +8,21 @@ let remove = [ 1, 2, 4 ];
 let rule = new DDZRuleMaster();
 
 // 比较
-let poker1 = [ 0x03, 0x13, 0x23, 0x33 ];
-let poker2 = [ 0x4E, 0x4F ];
-console.log( `牌型【${poker1.join( "," )}】${rule.assertOuts( poker1 ) ? "可出" : "不可出"}` );
-console.log( `牌型【${poker1.join( "," )}】 ${rule.assertOuts( poker1, poker2 ) ? " < " : " >"} 牌型【${poker2.join( "," )}】` );
+// let poker1 = [ 0x03, 0x13, 0x23, 0x33 ];
+// let poker2 = [ 0x4E, 0x4F ];
+// console.log( `牌型【${ poker1.join( "," ) }】${ rule.assertOuts( poker1 ) ? "可出" : "不可出" }` );
+// console.log( `牌型【${ poker1.join( "," ) }】 ${ rule.assertOuts( poker1, poker2 ) ? " < " : " >" } 牌型【${ poker2.join( "," ) }】` );
+
+// let distribution = {};
+let result1 = rule._searchThreeLine( [ 0x04, 0x14, 0x24, 0x05, 0x15, 0x16, 0x26, 0x17, 0x27, 0x08, 0x18, 0x28, 0x38, 0x39, 0x19, 0x09, 0x03, 0x13 ], 5, 2 );
+console.log( result1 );
+
+let result2 = rule._searchSingleLine( [ 0x03, 0x04, 0x13, 0x05, 0x15, 0x16, 0x26, 0x17, 0x27, 0x08, 0x18 ], 5, 4 );
+console.log( result2 );
+
+// rule._analyseDistribution( [ 0x01, 0x11, 0x02, 0x32, 0x04, 0x25, 0x36, 0x18, 0x22 ], distribution );
+
+
 
 // // 删除
 // console.log( arr.join( "," ) );
