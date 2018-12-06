@@ -110,7 +110,7 @@ export class PokerTypeAssert {
             return EPokerMainType.CMT_NONE;
     }
     // 是否连续的
-    static isCombo( cbPokerGroup: number[] ): boolean {
+    static isSeq( cbPokerGroup: number[] ): boolean {
         let cbPokerTemp: number[] = [];
         Memory.copy( cbPokerTemp, cbPokerGroup );
         // 降序排序
@@ -132,7 +132,7 @@ export class PokerTypeAssert {
         if (
             oneCount >= 5 &&
             ( oneCount === cbPokerDatas.length ) &&
-            PokerTypeAssert.isCombo( cbPokerGroup )
+            PokerTypeAssert.isSeq( cbPokerGroup )
         )
             return true;
         return false;
@@ -148,7 +148,7 @@ export class PokerTypeAssert {
         if (
             twoCount >= 3 &&
             ( ( twoCount * 2 ) === cbPokerDatas.length ) &&
-            PokerTypeAssert.isCombo( cbPokerGroup )
+            PokerTypeAssert.isSeq( cbPokerGroup )
         )
             return true;
         return false;
@@ -179,7 +179,7 @@ export class PokerTypeAssert {
         if (
             threeCount >= 2 &&
             ( ( threeCount * 3 ) === cbPokerDatas.length ) &&
-            PokerTypeAssert.isCombo( cbPokerGroup )
+            PokerTypeAssert.isSeq( cbPokerGroup )
         )
             return true;
         return false;
@@ -196,7 +196,7 @@ export class PokerTypeAssert {
             if (
                 threeCount >= 2 &&
                 ( ( threeCount * 4 ) === cbPokerDatas.length ) &&
-                PokerTypeAssert.isCombo( cbPokerGroup )
+                PokerTypeAssert.isSeq( cbPokerGroup )
             )
                 return true;
         return false;
@@ -212,7 +212,7 @@ export class PokerTypeAssert {
             if (
                 threeCount >= 2 &&
                 ( ( threeCount * 3 + fourCount * 4 + twoCount * 2 ) === cbPokerDatas.length ) &&
-                PokerTypeAssert.isCombo( cbPokerGroup )
+                PokerTypeAssert.isSeq( cbPokerGroup )
             )
                 return true;
         return false;

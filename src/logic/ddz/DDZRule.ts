@@ -1,6 +1,6 @@
 import * as poker from "../PokerData";
 import * as utils from "../../utils/Memory";
-import { sortByPatternFirst, sortByLogicFirst } from '../Sort';
+import { sortByPatternFirst, sortByLogicFirst, sortByLogicFirstAsc } from '../Sort';
 import { ICountAnalysis, EPokerMainType, EPokerType, PokerTypeAssert, IWeightAnalysis, IAnalysis, IDistribution } from './DDZPokerType';
 import {
     m_cbCardData,
@@ -73,36 +73,30 @@ export default class DDZRuleMaster {
     /**
      * 从一个牌数组中移除目标数组（ps: 出牌）
      * 对传入的原数组做操作，并不打算生成新的数组
-     * @param cbRemovePoker
-     * @param cbPokerDatas
+     * @param removeData
+     * @param srcData
      * @todo: 待优化，删除数组做到不改变元素的位置
      */
-    removePokerDatas( cbRemovePoker: number[], cbPokerDatas: number[] ): void {
-        let cbRemoveCount = cbRemovePoker.length;
-        let cbPokerCount = cbPokerDatas.length;
-        if ( cbRemoveCount > cbPokerCount )
-            console.error( "remove Error. cbRemoveCount is larger than cbPokerCount" );
-        let cbTempPoker: number[] = [];
-        utils.Memory.copy( cbTempPoker, cbPokerDatas );
-        let i = 0, j = 0;
-        while ( i < cbRemoveCount ) {
-            while ( j < cbPokerCount ) {
-                if ( cbRemovePoker[ i ] === cbPokerDatas[ j ] ) {
-                    // 交换数值
-                    [ cbPokerDatas[ cbPokerCount - 1 ], cbPokerDatas[ j ] ] = [ cbPokerDatas[ j ], cbPokerDatas[ cbPokerCount - 1 ] ];
-                    // utils.Memory.swap( cbPokerDatas, j, cbPokerCount - 1 );
-                    cbPokerCount--;
-                    continue;
-                }
-                j++;
+    removePokerDatas( removeData: number[], srcData: number[] ): void {
+        let removeLen = removeData.length;
+        let srcLen = srcData.length;
+        if ( removeLen > srcLen )
+            console.error( "remove Error. removeLen is larger than srcLen" );
+        let tempData: number[] = [];
+        for ( let i = 0, j = 0; i < srcLen; i++ ) {
+            for ( j = 0; j < removeLen; j++ ) {
+                if ( removeData[ j ] === srcData[ i ] )
+                    break;
             }
-            i++;
-            j = 0;
+            if ( j >= removeLen )
+                tempData.push( srcData[ i ] );
         }
-        let removeCount = cbPokerDatas.length - cbPokerCount;
-        while ( removeCount ) {
-            cbPokerDatas.pop();
-            removeCount--;
+        let tempLen = tempData.length;
+        for ( let i = 0; i < srcLen; i++ ) {
+            if ( i < tempLen )
+                srcData[ i ] = tempData[ i ]
+            else
+                srcData.pop();
         }
     }
     // 查找扑克
@@ -288,7 +282,7 @@ export default class DDZRuleMaster {
                 result.push.apply( result, this._searchSingleLine( myhands, lastWeight, combo ) );
                 break;
             case EPokerType.CT_DOUBLE:
-                result.push.apply( result, this._searchDobule( myhands, lastWeight ) );
+                result.push.apply( result, this._searchDouble( myhands, lastWeight ) );
                 break;
             case EPokerType.CT_DOUBLE_LINE:
                 combo = lastAnalysis[ 1 ].length;
@@ -333,26 +327,11 @@ export default class DDZRuleMaster {
         // return result;
     }
     // 查找单牌
-    _searchSingle( cbPokerDatas: number[], startWeight: number ): number[] {
-        let count = 1;
-        let result = [];
+    _searchSingle( cbPokerDatas: number[], startWeight: number ): number[][] {
+        let combo = 1;
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );
-        let { cardsMap, cardsSet } = distribution;
-        // 出牌组合
-        let outs: number[] = [];
-        for ( let sameCount = count - 1; sameCount < cardsSet.length; sameCount++ ) {
-            for ( let i = 0; i < cardsSet[ sameCount ].length; i++ ) {
-                if ( poker.getLogicValue( cardsSet[ sameCount ][ i ] ) > startWeight ) {
-                    outs = [];
-                    for ( let j = count - 1; j >= 0; j-- ) {
-                        outs.push( cardsMap[ cardsSet[ sameCount ][ i ] ][ j ] );
-                    }
-                    result.push( outs );
-                }
-            }
-        }
-        return result;
+        return this._searchCombo( distribution, combo, startWeight );
     }
     // 查找顺子
     _searchSingleLine( cbPokerDatas: number[], startWeight: number, combo: number ): number[][] {
@@ -361,7 +340,7 @@ export default class DDZRuleMaster {
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );
         let { cardsMap, cardsSet } = distribution;
-        let lineSets = this._searchLines( distribution, sameCount, startWeight, combo );
+        let lineSets = this._searchSeq( distribution, sameCount, startWeight, combo );
         let outs: number[] = [];
         for ( let i = 0; i < lineSets.length; i++ ) {
             outs = [];
@@ -373,58 +352,12 @@ export default class DDZRuleMaster {
         }
         return result;
     }
-    // 查找满足条件的连续组合
-    _searchLines( distribution: IDistribution, sameCount: number, startWeight: number, combo: number ): number[][] {
-        let { cardsSet } = distribution;
-        let lineSets: number[][] = [];
-        let sameCountSet = [];
-        // 找出符合sameCount数量的牌集合
-        for ( let count = sameCount - 1; count < cardsSet.length; count++ ) {
-            for ( let i = 0; i < cardsSet[ count ].length; i++ ) {
-                sameCountSet.push( cardsSet[ count ][ i ] );
-            }
-        }
-        // 排序
-        sameCountSet.sort( sortByLogicFirst );
-        // 判断combo
-        let cardGroup: number[] = [];
-        if ( sameCountSet.length < combo ) return lineSets;
-        for ( let i = 0; i < sameCountSet.length; i++ ) {
-            if ( ( i + combo <= sameCountSet.length ) && ( poker.getLogicValue( sameCountSet[ i ] ) > startWeight ) ) {
-                cardGroup = [];
-                for ( let j = 0; j < combo; j++ ) {
-                    cardGroup.push( sameCountSet[ i + j ] );
-                }
-                if ( PokerTypeAssert.isCombo( cardGroup ) )
-                    lineSets.push( cardGroup );
-            } else {
-                break;
-            }
-        }
-        return lineSets;
-    }
     // 查找对牌
-    _searchDobule( cbPokerDatas: number[], startWeight: number ): number[] {
-        let count = 2;
-        // 最终输出结果
-        let result = [];
+    _searchDouble( cbPokerDatas: number[], startWeight: number ): number[][] {
+        let combo = 2;
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );
-        let { cardsMap, cardsSet } = distribution;
-        // 出牌组合
-        let outs: number[] = [];
-        for ( let sameCount = count - 1; sameCount < cardsSet.length; sameCount++ ) {
-            for ( let i = 0; i < cardsSet[ sameCount ].length; i++ ) {
-                if ( poker.getLogicValue( cardsSet[ sameCount ][ i ] ) > startWeight ) {
-                    outs = [];
-                    for ( let j = count - 1; j >= 0; j-- ) {
-                        outs.push( cardsMap[ cardsSet[ sameCount ][ i ] ][ j ] );
-                    }
-                    result.push( outs );
-                }
-            }
-        }
-        return result;
+        return this._searchCombo( distribution, combo, startWeight );
     }
     // 查找连对
     _searchDoubleLine( cbPokerDatas: number[], startWeight: number, combo ): number[] {
@@ -433,7 +366,7 @@ export default class DDZRuleMaster {
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );
         let { cardsMap, cardsSet } = distribution;
-        let lineSets = this._searchLines( distribution, sameCount, startWeight, combo );
+        let lineSets = this._searchSeq( distribution, sameCount, startWeight, combo );
         let outs: number[] = [];
         for ( let i = 0; i < lineSets.length; i++ ) {
             outs = [];
@@ -446,27 +379,11 @@ export default class DDZRuleMaster {
         return result;
     }
     // 查找三不带
-    _searchThree( cbPokerDatas: number[], startWeight: number ): number[] {
-        let count = 3;
-        // 最终输出结果
-        let result = [];
+    _searchThree( cbPokerDatas: number[], startWeight: number ): number[][] {
+        let combo = 3;
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );
-        let { cardsMap, cardsSet } = distribution;
-        // 出牌组合
-        let outs: number[] = [];
-        for ( let sameCount = count - 1; sameCount < cardsSet.length; sameCount++ ) {
-            for ( let i = 0; i < cardsSet[ sameCount ].length; i++ ) {
-                if ( poker.getLogicValue( cardsSet[ sameCount ][ i ] ) > startWeight ) {
-                    outs = [];
-                    for ( let j = count - 1; j >= 0; j-- ) {
-                        outs.push( cardsMap[ cardsSet[ sameCount ][ i ] ][ j ] );
-                    }
-                    result.push( outs );
-                }
-            }
-        }
-        return result;
+        return this._searchCombo( distribution, combo, startWeight );
     }
     // 查找三不带 飞机
     _searchThreeLine( cbPokerDatas: number[], startWeight: number, combo: number ): number[] {
@@ -475,7 +392,7 @@ export default class DDZRuleMaster {
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );
         let { cardsMap, cardsSet } = distribution;
-        let lineSets = this._searchLines( distribution, sameCount, startWeight, combo );
+        let lineSets = this._searchSeq( distribution, sameCount, startWeight, combo );
         let outs: number[] = [];
         for ( let i = 0; i < lineSets.length; i++ ) {
             outs = [];
@@ -488,9 +405,23 @@ export default class DDZRuleMaster {
         return result;
     }
     // 查找三带一
-    private _searchThreeTakeOne( cbPokerDatas: number[], startWeight: number ): number[] {
-
-        return [];
+    _searchThreeTakeOne( cbPokerDatas: number[], startWeight: number ): number[] {
+        let combo = 3;
+        let distribution: IDistribution = {};
+        this._analyseDistribution( cbPokerDatas, distribution );
+        let threeSet = this._searchCombo( distribution, combo, startWeight );
+        let result = [];
+        let cbResPokerDatas = [];
+        let subSet = [];
+        utils.Memory.copy( cbResPokerDatas, cbPokerDatas );
+        for ( let i = 0; i < threeSet.length; i++ ) {
+            this.removePokerDatas( threeSet[ i ], cbResPokerDatas );
+            subSet = this._searchSub( cbResPokerDatas, 1, 1 );
+            for ( let j = 0; j < subSet.length; j++ ) {
+                result.push( [].concat( threeSet[ i ], subSet[ j ] ) );
+            }
+        }
+        return result;
     }
     // 查找三带一 飞机
     private _searchThreeLineTakeOne( cbPokerDatas: number[], startWeight: number, combo: number ): number[] {
@@ -505,29 +436,13 @@ export default class DDZRuleMaster {
     // 查找 三带二 飞机
     private _searchThreeLineTakeTwo( cbPokerDatas: number[], startWeight: number, combo: number ): number[] {
         return [];
-
     }
     // 查找 炸弹 包括王炸
-    private _searchBoom( cbPokerDatas: number[], startWeight: number ): number[] {
-        let count = 4;
-        // 最终输出结果
-        let result = [];
+    private _searchBoom( cbPokerDatas: number[], startWeight: number ): number[][] {
+        let combo = 4;
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );
-        let { cardsMap, cardsSet } = distribution;
-        // 出牌组合
-        let outs: number[] = [];
-        for ( let sameCount = count - 1; sameCount < cardsSet.length; sameCount++ ) {
-            for ( let i = 0; i < cardsSet[ sameCount ].length; i++ ) {
-                if ( poker.getLogicValue( cardsSet[ sameCount ][ i ] ) > startWeight ) {
-                    outs = [];
-                    for ( let j = count - 1; j >= 0; j-- ) {
-                        outs.push( cardsMap[ cardsSet[ sameCount ][ i ] ][ j ] );
-                    }
-                    result.push( outs );
-                }
-            }
-        }
+        let result: number[][] = this._searchCombo( distribution, combo, startWeight );
         if ( this.isCardExists( cbPokerDatas, SJOKER ) && this.isCardExists( cbPokerDatas, LJOKER ) )
             result.push( [ SJOKER, LJOKER ] )
         return result;
@@ -535,19 +450,34 @@ export default class DDZRuleMaster {
     // 查找 四带两单
     private _searchFourTakeOne( cbPokerDatas: number[], startWeight: number ): number[] {
         return [];
-
     }
     // 查找 四带两对
     private _searchFourTakeTwo( cbPokerDatas: number[], startWeight: number ): number[] {
         return [];
-
     }
-    // 查找 附带牌型
-    private _searchSub( cbResPokerDatas: number[], sameCount: number, groupCount: number ): number[][] {
-        let result = [];
-        let distribution: IDistribution = {};
-        this._analyseDistribution( cbResPokerDatas, distribution );
+    private _searchCombo( distribution: IDistribution, combo: number, startWeight: number ): number[][] {
+        let result: number[][] = [];
         let { cardsMap, cardsSet } = distribution;
+        // 出牌组合
+        let outs: number[] = [];
+        for ( let sameCount = combo - 1; sameCount < cardsSet.length; sameCount++ ) {
+            for ( let i = cardsSet[ sameCount ].length - 1; i >= 0; i-- ) {
+                if ( poker.getLogicValue( cardsSet[ sameCount ][ i ] ) > startWeight ) {
+                    outs = [];
+                    // 从映射中拿出目标扑克
+                    for ( let j = combo - 1; j >= 0; j-- ) {
+                        outs.push( cardsMap[ cardsSet[ sameCount ][ i ] ][ j ] );
+                    }
+                    result.push( outs );
+                }
+            }
+        }
+        return result;
+    }
+    // 查找满足条件的连续组合
+    private _searchSeq( distribution: IDistribution, sameCount: number, startWeight: number, seqLen: number ): number[][] {
+        let { cardsSet } = distribution;
+        let lineSets: number[][] = [];
         let sameCountSet = [];
         // 找出符合sameCount数量的牌集合
         for ( let count = sameCount - 1; count < cardsSet.length; count++ ) {
@@ -555,11 +485,62 @@ export default class DDZRuleMaster {
                 sameCountSet.push( cardsSet[ count ][ i ] );
             }
         }
-        for ( let i = 0; i < sameCountSet.length; i++ ) {
-            if( i + groupCount < sameCount)
+        // 排序
+        sameCountSet.sort( sortByLogicFirstAsc );
+        // 判断combo
+        let cardGroup: number[] = [];
+        if ( sameCountSet.length < seqLen ) return lineSets;
+        for ( let i = 0; i <= sameCountSet.length - seqLen; i++ ) {
+            if ( ( poker.getLogicValue( sameCountSet[ i + seqLen - 1 ] ) > startWeight ) ) {
+                cardGroup = [];
+                for ( let j = 0; j < seqLen; j++ ) {
+                    cardGroup.unshift( sameCountSet[ i + j ] );
+                }
+                if ( PokerTypeAssert.isSeq( cardGroup ) )
+                    lineSets.push( cardGroup );
+            }
+        }
+        return lineSets;
+    }
+    // 查找 附带牌型
+    _searchSub( cbResPokerDatas: number[], subCombo: number, groupNums: number ): number[][] {
+        let distribution: IDistribution = {};
+        this._analyseDistribution( cbResPokerDatas, distribution );
+        let result: number[][] = [];
+        let { cardsMap, cardsSet } = distribution;
+        // 可出牌集合
+        let outsSet: number[][] = [];
+        let outs: number[] = [];
+        // fixed: 组合策略，拆牌策略，带对牌才会可能拆解炸弹牌，带单不选择拆解炸弹牌
+        let maxCombo = subCombo;
+        if ( groupNums >= cardsSet[ subCombo - 1 ].length ) {
+            maxCombo += 1;
         }
 
-
+        for ( let sameCount = subCombo - 1; sameCount < maxCombo; sameCount++ ) {
+            for ( let i = cardsSet[ sameCount ].length - 1; i >= 0; i-- ) {
+                // 该类牌型能被拆分成几组
+                let gorupCount = Math.floor( cardsMap[ cardsSet[ sameCount ][ i ] ].length / subCombo );
+                // 从映射中拿出目标扑克
+                for ( let gi = 0; gi < gorupCount; gi++ ) {
+                    outs = [];
+                    for ( let j = 0; j < subCombo; j++ ) {
+                        outs.push( cardsMap[ cardsSet[ sameCount ][ i ] ][ j + gi * subCombo ] );
+                    }
+                    outsSet.push( outs );
+                }
+            }
+        }
+        // 在集合中取出固定数量的集合
+        let combination: number[][] = utils.Memory.combine( outsSet, groupNums );
+        for ( let i = 0; i < combination.length; i++ ) {
+            outs = [];
+            for ( let j = 0; j < combination[ i ].length; j++ ) {
+                if ( combination[ i ][ j ] )
+                    outs = outs.concat( outsSet[ j ] );
+            }
+            result.push( outs );
+        }
         return result;
     }
 

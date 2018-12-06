@@ -20,6 +20,10 @@ export function sortByPatternFirst( a: number, b: number ): any {
 export function sortByLogicFirst( a: number, b: number ): any {
     return getLogicFirstValue( b ) - getLogicFirstValue( a );
 }
+// 剩下的排序
+export function sortByLogicFirstAsc( a: number, b: number ): any {
+    return getLogicFirstValue( a ) - getLogicFirstValue( b );
+}
 
 
 // 数值为重，花色为次的权重值
