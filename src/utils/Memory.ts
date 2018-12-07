@@ -60,5 +60,28 @@ export class Memory {
         }
         return combination;
     }
+
+    static remove( removeData: number[], srcData: number[] ): void {
+        let removeLen = removeData.length;
+        let srcLen = srcData.length;
+        if ( removeLen > srcLen )
+            console.error( "remove Error. removeLen is larger than srcLen" );
+        let tempData: number[] = [];
+        for ( let i = 0, j = 0; i < srcLen; i++ ) {
+            for ( j = 0; j < removeLen; j++ ) {
+                if ( removeData[ j ] === srcData[ i ] )
+                    break;
+            }
+            if ( j >= removeLen )
+                tempData.push( srcData[ i ] );
+        }
+        let tempLen = tempData.length;
+        for ( let i = 0; i < srcLen; i++ ) {
+            if ( i < tempLen )
+                srcData[ i ] = tempData[ i ]
+            else
+                srcData.pop();
+        }
+    }
 }
 
