@@ -4,10 +4,10 @@ import PokerTypeSearch from "./DDZPokerTypeSearch";
 import { sortByPatternFirst, sortByLogicFirst, sortByLogicFirstAsc } from '../Sort';
 import { ICountAnalysis, EPokerMainType, EPokerType, PokerTypeAssert, IWeightAnalysis, IAnalysis, IDistribution } from './DDZPokerType';
 import {
-    m_cbCardData,
+    m_cbPokerData,
     FULL_COUNT,
     SORT_TYPE,
-    MAX_COUNT,
+    MAX_HAND_COUNT,
     MAX_POKER_COUNT,
     SJOKER,
     LJOKER
@@ -17,7 +17,6 @@ let searchMrg: PokerTypeSearch = new PokerTypeSearch();
 
 // 斗地主逻辑
 export default class DDZRuleMaster {
-
     /**
      * // 牌值有效值判断
      * @param cbPokerData
@@ -38,13 +37,14 @@ export default class DDZRuleMaster {
      * @param cbPokerDatas
      */
     shuffle( cbPokerDatas: number[] ): void {
-        utils.Memory.copy( cbPokerDatas, m_cbCardData );
-        let totalCount: number = FULL_COUNT,
+        utils.Memory.copy( cbPokerDatas, m_cbPokerData );
+        let totalCount: number = FULL_COUNT - 1,
             randCount: number = totalCount,
             position: number = 0;
         do {
             position = Math.floor( Math.random() * randCount );
-            utils.Memory.swap( cbPokerDatas, position, randCount );
+            [ cbPokerDatas[ position ], cbPokerDatas[ randCount ] ] = [ cbPokerDatas[ randCount ], cbPokerDatas[ position ] ]
+            // utils.Memory.swap( cbPokerDatas, position, randCount );
             randCount--;
         } while ( randCount );
     }
@@ -229,7 +229,6 @@ export default class DDZRuleMaster {
         }
         return false;
     }
-
     /**
      * 查询跟牌
      * @param myhands
@@ -244,13 +243,27 @@ export default class DDZRuleMaster {
     }
     /** ---------------------------------------- 牌型搜索 -------------------------------- */
     /**
-     * 查询回合首次出牌
+     * todo:查询回合首次出牌，检索所有牌型中最小权值的先出
      * @param myhands
      */
     private _searchFristOuts( myhands: number[] ): number[][] {
-        return [];
+        let result = searchMrg._searchThreeTakeOne( myhands, 0 );
+        if ( result.length )
+            return result;
+        result = searchMrg._searchThree( myhands, 0 );
+        if ( result.length )
+            return result;
+        result = searchMrg._searchDouble( myhands, 0 );
+        if ( result.length )
+            return result;
+        result = searchMrg._searchSingle( myhands, 0 );
+        return result;
     }
-
+    /**
+     * 搜索跟牌
+     * @param lastOuts
+     * @param myhands
+     */
     private _searchFollowOuts( lastOuts: number[], myhands: number[] ): number[][] {
         let lastAnalysis = {};
         let lastOutType = this.getPokerType( lastOuts, lastAnalysis );
@@ -310,8 +323,6 @@ export default class DDZRuleMaster {
         }
         return result;
     }
-
-
     /**
      * 获取牌型的权重
      * @param cbPokerDatas
@@ -366,10 +377,6 @@ export default class DDZRuleMaster {
             }
         }
     }
-
-
-
-
     /**
      * 重置/初始化分析结果
      * @param analyseResult
@@ -385,7 +392,5 @@ export default class DDZRuleMaster {
             analyseResult.cbPokerGroups[ i ] = [];
         }
     }
-
-
 }
 

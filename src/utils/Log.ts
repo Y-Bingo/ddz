@@ -1,4 +1,6 @@
 import * as DDZ from "../logic/ddz/DDZPokerType";
+import { Func } from "mocha";
+import { getPattern, getValue, EPokerPattern } from "../logic/PokerData";
 
 export function logPokerType( pokerType: DDZ.EPokerType ) {
     switch ( pokerType ) {
@@ -32,5 +34,61 @@ export function logPokerType( pokerType: DDZ.EPokerType ) {
             return "【CT_JOKER_BOMB 火箭】";
         case DDZ.EPokerType.CT_ERROR:
             return "【CT_ERROR 非正确牌型】";
+    }
+}
+
+export function logUserAction( str: string ): any {
+    return function ( target: any, key: string, descriptor: any ) {
+        let oldValue = descriptor.value;
+        descriptor.value = function () {
+            console.log( `玩家【 ${ arguments[ 0 ].nickName } 】：${ str }  in  房间【${ this.rid }】` );
+            return oldValue.apply( this, arguments );
+        }
+    }
+}
+
+export function logPokes( cards: number[] ): string {
+    let str = "";
+    for ( let i = 0; i < cards.length; i++ ) {
+        let pattern = getPattern( cards[ i ] );
+        let value = getValue( cards[ i ] );
+        str += `【${ getPatternStr( pattern ) }${ getValueStr( value ) }】`;
+    }
+    return str;
+}
+
+function getPatternStr( pattern: EPokerPattern ): string {
+    switch ( pattern ) {
+        case EPokerPattern.DIAMOND:
+            return "♦";
+        case EPokerPattern.HEART:
+            return "♥";
+        case EPokerPattern.SPADE:
+            return "♠";
+        case EPokerPattern.CLUB:
+            return "♣";
+        case EPokerPattern.JOKER:
+            return "☼"
+        case EPokerPattern.NONE:
+            return "✘"
+    }
+}
+
+function getValueStr( value: number ): string {
+    switch ( value ) {
+        case 11:
+            return " J";
+        case 12:
+            return " Q";
+        case 13:
+            return " K";
+        case 14:
+            return " ♀";
+        case 15:
+            return " ♂";
+        case 10:
+            return "10";
+        default:
+            return ` ${ value }`
     }
 }

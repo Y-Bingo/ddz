@@ -3,10 +3,39 @@ import { ICountAnalysis } from "./logic/ddz/DDZPokerType";
 import { getLogicValue } from "./logic/PokerData"
 import { logPokerType } from './utils/Log';
 import { Memory } from "./utils/Memory";
+import { GameEngine } from './logic/GameEngine';
+import createUser from './logic/User';
 
-let arr = [ 1, 2, 3, 4, 5, 17, 18, 19, 20, 9, 3 ];
-let remove = [ 1, 2, 3, 4, 5, 17, 18, 19, 20, 9, 3 ];
-let rule = new DDZRuleMaster();
+
+let gameEngine = new GameEngine();
+let user1 = createUser();
+let user2 = createUser();
+let user3 = createUser();
+let user4 = createUser();
+gameEngine.onUserIn( user1 );
+gameEngine.onUserIn( user2 );
+gameEngine.onUserIn( user3 );
+
+gameEngine.onUserReady( user1 );
+gameEngine.onUserReady( user2 );
+gameEngine.onUserOut( user2 );
+gameEngine.onUserOut( user1 );
+gameEngine.onUserOut( user3 );
+gameEngine.onUserReady( user3 );
+
+gameEngine.onUserIn( user4 );
+gameEngine.onUserIn( user2 );
+gameEngine.onUserIn( user1 );
+gameEngine.onUserReady( user2 );
+gameEngine.onUserReady( user4 );
+gameEngine.onUserReady( user1 );
+
+
+
+
+// let arr = [ 1, 2, 3, 4, 5, 17, 18, 19, 20, 9, 3 ];
+// let remove = [ 1, 2, 3, 4, 5, 17, 18, 19, 20, 9, 3 ];
+// let rule = new DDZRuleMaster();
 
 // 比较
 // let poker1 = [ 0x03, 0x13, 0x23, 0x33 ];
@@ -15,8 +44,8 @@ let rule = new DDZRuleMaster();
 // console.log( `牌型【${ poker1.join( "," ) }】 ${ rule.assertOuts( poker1, poker2 ) ? " < " : " >" } 牌型【${ poker2.join( "," ) }】` );
 
 // let distribution = {};
-let result1 = rule.searchFollowOuts( [ 0x02, 0x12, 0x13, 0x23, 0x33, 0x4f, 0x4E, 0x0A, 0x0B, 0x0C, 0x0DD ],[ 0x01, 0x11 ] );
-console.log( result1 );
+// let result1 = rule.searchFollowOuts( [ 0x02, 0x12, 0x13, 0x23, 0x33, 0x4f, 0x4E, 0x0A, 0x0B, 0x0C, 0x0DD ],[ 0x01, 0x11 ] );
+// console.log( result1 );
 
 
 // let result2 = rule._searchSub( [ 0x03, 0x04, 0x05, 0x15, 0x16, 0x26, 0x36, 0x06, 0x17, 0x08, 0x18 ], 1,2 );

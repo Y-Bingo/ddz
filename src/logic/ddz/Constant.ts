@@ -3,14 +3,16 @@ export const GAME_PLAYER = 3;
 // 最大同值扑克数
 export const MAX_POKER_COUNT = 4;
 // 地主初始牌张数
-export const MAX_COUNT = 20;
+export const MAX_HAND_COUNT = 20;
+// 初始玩家手牌数
+export const HAND_COUNT = 17;
 // 总牌数
 export const FULL_COUNT = 54;
 // 单人初始牌张数
 export const NORMAL_COUNT = 17;
 
 //扑克数据
-export const m_cbCardData: number[] =
+export const m_cbPokerData: number[] =
     [
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,	//方块 3 - 2
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,	//梅花 3 - 2

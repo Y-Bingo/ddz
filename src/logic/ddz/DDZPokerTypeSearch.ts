@@ -3,10 +3,10 @@ import * as utils from "../../utils/Memory";
 import { sortByLogicFirst, sortByLogicFirstAsc } from '../Sort';
 import { ICountAnalysis, EPokerMainType, EPokerType, PokerTypeAssert, IDistribution } from './DDZPokerType';
 import {
-    m_cbCardData,
+    m_cbPokerData,
     FULL_COUNT,
     SORT_TYPE,
-    MAX_COUNT,
+    MAX_HAND_COUNT,
     MAX_POKER_COUNT,
     SJOKER,
     LJOKER
@@ -92,7 +92,7 @@ export default class PokerTypeSearch {
         return result;
     }
     // 查找三带一
-    _searchThreeTakeOne( cbPokerDatas: number[], startWeight: number ): number[] {
+    _searchThreeTakeOne( cbPokerDatas: number[], startWeight: number ): number[][] {
         let combo = 3;
         let distribution: IDistribution = {};
         this._analyseDistribution( cbPokerDatas, distribution );

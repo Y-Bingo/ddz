@@ -1,18 +1,22 @@
-import { createSecureServer } from "http2";
 import * as randomName from "chinese-random-name";
+import { EUserStatus } from "../model/UserModel";
 
-class User {
+export class User {
     // 用户ID
-    id: number;
+    uid: number;
     // 用户名
     nickName: string;
     // 用户头像
     face: string;
     // 用户积分
     score: number;
+    // 用户椅子
+    chairID: number;
+    // 用户状态
+    userStatus: EUserStatus;
 
     constructor ( data: any ) {
-        this.id = data.id;
+        this.uid = data.uid;
         this.nickName = data.nickName;
         this.face = data.face;
         this.score = data.score;
@@ -20,11 +24,12 @@ class User {
 }
 
 export default function createUser( data: any = {} ): User {
-    let id = data.id || genUserId();
-    let nickName = data.nickName || genNickName();
+    let uid = data.uid || genUserId();
+    // let nickName = data.nickName || genNickName();
+    let nickName = data.nickName || `ID:${ uid }`;
     let face = data.face || genFace();
     let score = data.score || 1888;
-    return new User( { id, nickName, face, score } );
+    return new User( { uid, nickName, face, score } );
 }
 
 function genUserId(): number {

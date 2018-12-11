@@ -80,7 +80,6 @@ export function getPattern( value: number ): EPokerPattern {
             return EPokerPattern.NONE;
     }
 }
-
 /**
  * 获取牌的逻辑值，相当于权重
  * 3-K取3-13，A取14，2取16（方便做顺子检测），大小王取18、19，A与2间隔开，2与大小王隔开，为了避免顺子

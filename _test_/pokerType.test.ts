@@ -3,7 +3,7 @@ import "mocha";
 import { expect } from 'chai';
 // 导入待测试单元
 import DDZRuleMaster from "../src/logic/ddz/DDZRule";
-import { m_cbCardData } from "../src/logic/ddz/Constant";
+import { m_cbPokerData } from "../src/logic/ddz/Constant";
 import { EPokerType } from "../src/logic/ddz/DDZPokerType";
 import { logPokerType } from "../src/utils/Log";
 
@@ -19,10 +19,10 @@ describe( "牌型检测", function () {
     describe( "单张 CT_SINGLE", function () {
         let sucExpect = EPokerType.CT_SINGLE;
         let errExpect = EPokerType.CT_ERROR;
-        for ( var i = 0; i < m_cbCardData.length; i++ ) {
+        for ( var i = 0; i < m_cbPokerData.length; i++ ) {
             ( function ( i ) {
                 let cards = [];
-                cards.push( m_cbCardData[ i ] );
+                cards.push( m_cbPokerData[ i ] );
                 checkPokerType( cards, sucExpect );
             } )( i );
         }

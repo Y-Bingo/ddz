@@ -53,7 +53,6 @@ export enum EPokerType {
     // 火箭类型
     CT_JOKER_BOMB = 14
 }
-
 /**
  * 牌型分布数据结构
  */
@@ -67,30 +66,28 @@ export interface ICountAnalysis {
      * */
     cbPokerGroups?: number[][];  //扑克数据
 }
-
 // 牌型分析
 export interface ITypeAnalysis extends ICountAnalysis {
     // 牌型
     pokerType?: EPokerType;
 }
-
 // 权重分析
 export interface IWeightAnalysis extends ITypeAnalysis {
     weight?: number; // [ 3 , 19 ];
 }
-
-//
+// 牌型分析
 export interface IAnalysis extends IWeightAnalysis {
     // 牌列表
     cards?: number[];
 }
-
+// 牌型分布分析
 export interface IDistribution {
     cardsSet?: number[][];
     cardsMap?: { [ value: number ]: number[] };
 }
-
-
+/**
+ * 牌型验证
+ */
 export class PokerTypeAssert {
     // 主要是哪种类型的牌型: 1 牌、2 牌、3 牌、4 牌
     static getMainType( analyseResult: ICountAnalysis ): number {

@@ -3,7 +3,7 @@ import "mocha";
 import { expect } from 'chai';
 // 导入待测试单元
 import DDZRuleMaster from "../src/logic/ddz/DDZRule";
-import { m_cbCardData } from "../src/logic/ddz/Constant";
+import { m_cbPokerData } from "../src/logic/ddz/Constant";
 import { EPokerType } from "../src/logic/ddz/DDZPokerType";
 import { logPokerType } from "../src/utils/Log";
 import { Func } from "mocha";
