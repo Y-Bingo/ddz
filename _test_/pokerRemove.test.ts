@@ -2,10 +2,10 @@
 import "mocha";
 import { expect } from 'chai';
 // 导入待测试单元
-import DDZRuleMaster from "../src/logic/ddz/DDZRule";
-import { m_cbPokerData } from "../src/logic/ddz/Constant";
-import { EPokerType } from "../src/logic/ddz/DDZPokerType";
-import { logPokerType } from "../src/utils/Log";
+import DDZRuleMaster from "../gameModule/game/ddz/constant/DDZRule";
+import { m_cbPokerData } from "../gameModule/game/ddz/constant/Constant";
+import { EPokerType } from "../gameModule/game/ddz/constant/DDZPokerType";
+// import { logPokerType } from "../src/utils/Log";
 import { Func } from "mocha";
 
 let rule: DDZRuleMaster;
@@ -25,8 +25,8 @@ describe( "数组删除", function () {
     } )
 } );
 
-function checkRemove ( cbRemovePoker: number[], cbPokerDatas: number[], sucExpect: number[] ): void {
-    let log = `原数组【${cbPokerDatas.join( "," )}】, 待删除【 ${cbRemovePoker}】`;
+function checkRemove( cbRemovePoker: number[], cbPokerDatas: number[], sucExpect: number[] ): void {
+    let log = `原数组【${ cbPokerDatas.join( "," ) }】, 待删除【 ${ cbRemovePoker }】`;
     it( log, function () {
         removePokerDatas( cbRemovePoker, cbPokerDatas );
         expect( cbPokerDatas ).to.deep.equal( sucExpect );
